@@ -12,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   useLoginUserMutation,
   useRegisterUserMutation,
 } from "@/features/api/authApi";
@@ -25,6 +32,7 @@ const Login = () => {
     name: "",
     email: "",
     password: "",
+    role: "student",
   });
   const [loginInput, setLoginInput] = useState({ email: "", password: "" });
 
@@ -135,6 +143,23 @@ const Login = () => {
                   required="true"
                 />
               </div>
+              <div className="space-y-1">
+                <Label htmlFor="role">Select Role</Label>
+                <Select
+                  value={signupInput.role}
+                  onValueChange={(value) => 
+                    setSignupInput({ ...signupInput, role: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="student">Student</SelectItem>
+                    <SelectItem value="instructor">Instructor</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </CardContent>
             <CardFooter>
               <Button
@@ -169,7 +194,7 @@ const Login = () => {
                   name="email"
                   value={loginInput.email}
                   onChange={(e) => changeInputHandler(e, "login")}
-                  placeholder="Eg. patel@gmail.com"
+                  placeholder="test@gmail.com"
                   required="true"
                 />
               </div>

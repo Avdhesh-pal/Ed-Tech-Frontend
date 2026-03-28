@@ -21,11 +21,12 @@ const MEDIA_API = "http://localhost:8080/api/v1/media";
 
 const LectureTab = () => {
   const [lectureTitle, setLectureTitle] = useState("");
-  const [uploadVideInfo, setUploadVideoInfo] = useState(null);
+  const [uploadVideoInfo, setUploadVideoInfo] = useState(null);
   const [isFree, setIsFree] = useState(false);
   const [mediaProgress, setMediaProgress] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [btnDisable, setBtnDisable] = useState(true);
+  const [isUploadComplete, setIsUploadComplete] = useState(false);
   const params = useParams();
   const { courseId, lectureId } = params;
 
@@ -36,7 +37,13 @@ const LectureTab = () => {
     if(lecture){
       setLectureTitle(lecture.lectureTitle);
       setIsFree(lecture.isPreviewFree);
-      setUploadVideoInfo(lecture.videoInfo)
+      // Only set uploaded video info if we have a valid video URL from database
+      if(lecture.videoUrl) {
+        setUploadVideoInfo({
+          videoUrl: lecture.videoUrl,
+          publicId: lecture.publicId
+        })
+      }
     }
   },[lecture])
 
@@ -50,6 +57,7 @@ const LectureTab = () => {
       const formData = new FormData();
       formData.append("file", file);
       setMediaProgress(true);
+      setIsUploadComplete(false);
       try {
         const res = await axios.post(`${MEDIA_API}/upload-video`, formData, {
           onUploadProgress: ({ loaded, total }) => {
@@ -58,16 +66,24 @@ const LectureTab = () => {
         });
 
         if (res.data.success) {
-          console.log(res);
+          console.log("Upload response:", res.data);
+          // Cloudinary returns secure_url not url
+          const videoUrl = res.data.data.secure_url || res.data.data.url;
+          const publicId = res.data.data.public_id;
+          
+          console.log("Setting videoUrl:", videoUrl);
+          console.log("Setting publicId:", publicId);
+          
           setUploadVideoInfo({
-            videoUrl: res.data.data.url,
-            publicId: res.data.data.public_id,
+            videoUrl: videoUrl,
+            publicId: publicId,
           });
           setBtnDisable(false);
+          setIsUploadComplete(true);
           toast.success(res.data.message);
         }
       } catch (error) {
-        console.log(error);
+        console.log("Upload error:", error);
         toast.error("video upload failed");
       } finally {
         setMediaProgress(false);
@@ -76,12 +92,23 @@ const LectureTab = () => {
   };
 
   const editLectureHandler = async () => {
-    console.log({ lectureTitle, uploadVideInfo, isFree, courseId, lectureId });
+    console.log({ lectureTitle, uploadVideoInfo, isFree, courseId, lectureId });
+    
+    // Validate that video info is set and upload is complete
+    if (!uploadVideoInfo || !uploadVideoInfo.videoUrl) {
+      toast.error("Please upload a video first");
+      return;
+    }
+    
+    if (mediaProgress) {
+      toast.error("Video is still uploading. Please wait for it to complete.");
+      return;
+    }
 
     await edtiLecture({
       lectureTitle,
-      videoInfo:uploadVideInfo,
-      isPreviewFree:isFree,
+      videoInfo: uploadVideoInfo,
+      isPreviewFree: isFree,
       courseId,
       lectureId,
     });
